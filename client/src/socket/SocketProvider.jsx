@@ -8,8 +8,23 @@ const resolveSocketUrl = () => {
   const envSocket = import.meta.env.VITE_SOCKET_URL;
   const candidate = (windowSocket || envSocket || '').trim();
 
+  const ensureSecureProtocol = (url) => {
+    if (!url) {
+      return '';
+    }
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+      if (url.startsWith('http://')) {
+        return `https://${url.slice('http://'.length)}`;
+      }
+      if (url.startsWith('ws://')) {
+        return `wss://${url.slice('ws://'.length)}`;
+      }
+    }
+    return url;
+  };
+
   if (candidate) {
-    return candidate;
+    return ensureSecureProtocol(candidate);
   }
 
   if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {

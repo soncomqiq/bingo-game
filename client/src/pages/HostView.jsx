@@ -9,7 +9,18 @@ const HostView = () => {
   const socket = useSocket();
   const navigate = useNavigate();
 
-  const shareUrl = useMemo(() => `${window.location.origin}/game/${gameId}`, [gameId]);
+  const basePrefix = useMemo(() => {
+    const basePathRaw = import.meta.env.BASE_URL || '/';
+    const normalizedBase = basePathRaw.endsWith('/') ? basePathRaw.slice(0, -1) : basePathRaw;
+    return normalizedBase && normalizedBase !== '/' ? normalizedBase : '';
+  }, []);
+  const playerPath = useMemo(() => `${basePrefix}/game/${gameId}`, [basePrefix, gameId]);
+  const shareUrl = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return playerPath;
+    }
+    return `${window.location.origin}${playerPath}`;
+  }, [playerPath]);
   const passwordStorageKey = useMemo(
     () => (gameId ? `hostPassword:${gameId}` : 'hostPassword'),
     [gameId]
@@ -298,7 +309,7 @@ const HostView = () => {
         <strong>{shareUrl}</strong>
       </p>
       <p>
-        Or send them directly to <Link to={`/game/${gameId}`}>/game/{gameId}</Link>
+        Or send them directly to <Link to={`/game/${gameId}`}>{playerPath}</Link>
       </p>
       <p style={{ marginTop: '0.5rem', color: '#475569' }}>
         Number range: {numberRange.min} – {numberRange.max}
