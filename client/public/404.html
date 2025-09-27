@@ -6,14 +6,22 @@
     <meta name="robots" content="noindex" />
     <script>
       (function (l) {
-        var basePath = '/bingo-game';
-        if (!l.pathname.startsWith(basePath)) {
-          basePath = '';
-        }
-        var relativePath = l.pathname.slice(basePath.length).replace(/^\//, '');
-        var search = l.search ? l.search.slice(1).replace(/&/g, '~and~') : '';
-        var query = '?/' + relativePath + (search ? '?' + search : '') + l.hash;
-        l.replace(basePath + '/' + query);
+        var repoBase = '/bingo-game';
+        var hasBase = l.pathname.startsWith(repoBase);
+        var relativePath = (hasBase ? l.pathname.slice(repoBase.length) : l.pathname)
+          .replace(/^\/+/, '');
+        var search = l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '';
+        var redirectUrl =
+          l.protocol +
+          '//' +
+          l.hostname +
+          (l.port ? ':' + l.port : '') +
+          repoBase +
+          '/?/' +
+          relativePath.replace(/&/g, '~and~') +
+          search +
+          l.hash;
+        l.replace(redirectUrl);
       })(window.location);
     </script>
   </head>
