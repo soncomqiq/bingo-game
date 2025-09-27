@@ -61,10 +61,10 @@ This repository now ships with an automated GitHub Pages workflow that builds th
 
 1. Push your changes to the `main` branch (the workflow triggers on pushes to `main` or via manual dispatch).
 2. In your GitHub repository, open **Settings → Pages** and choose the **GitHub Actions** source if prompted.
-3. Add a repository secret named `BINGO_SOCKET_URL` under **Settings → Secrets and variables → Actions**. Set it to the public URL where your Socket.IO backend is hosted (for local testing you can leave it blank and the workflow will fall back to `http://localhost:4000`).
-4. The workflow builds the client with the appropriate base path (`/bingo-game/`) and deploys `client/dist` automatically. The published site will be available at `https://soncomqiq.github.io/bingo-game/`.
+3. Add a repository secret named `BINGO_SOCKET_URL` under **Settings → Secrets and variables → Actions**. Set it to the public URL where your Socket.IO backend is hosted (Render, Railway, etc.). Without this secret, the production build will refuse to connect so you don’t end up pointing users at `http://localhost:4000`.
+4. The workflow builds the client with the appropriate base path (`/bingo-game/`), injects the socket URL, copies a SPA-friendly `404.html`, and deploys `client/dist` automatically. The published site lives at `https://soncomqiq.github.io/bingo-game/`.
 
-> ℹ️ GitHub Pages can only serve static assets. You still need to host the Node/Socket.IO server separately (Render, Railway, Fly.io, Azure Web Apps, etc.) and expose its URL via the `VITE_SOCKET_URL` environment variable when building.
+> ℹ️ GitHub Pages can only serve static assets. You still need to host the Node/Socket.IO server separately and expose its URL via the `VITE_SOCKET_URL` environment variable (or `BINGO_SOCKET_URL` secret in CI). The UI now warns and stays disconnected if no production socket URL is supplied.
 
 ### Host workflow
 

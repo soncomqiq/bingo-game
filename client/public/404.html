@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Redirecting…</title>
+    <meta name="robots" content="noindex" />
+    <script>
+      (function (l) {
+        var basePath = '/bingo-game';
+        if (!l.pathname.startsWith(basePath)) {
+          basePath = '';
+        }
+        var relativePath = l.pathname.slice(basePath.length).replace(/^\//, '');
+        var search = l.search ? l.search.slice(1).replace(/&/g, '~and~') : '';
+        var query = '?/' + relativePath + (search ? '?' + search : '') + l.hash;
+        l.replace(basePath + '/' + query);
+      })(window.location);
+    </script>
+  </head>
+  <body>
+    Redirecting…
+  </body>
+</html>
