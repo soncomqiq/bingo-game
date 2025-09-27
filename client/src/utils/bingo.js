@@ -1,45 +1,53 @@
-const COLUMN_RANGES = [
-  [1, 15],
-  [16, 30],
-  [31, 45],
-  [46, 60],
-  [61, 75]
-];
+const BOARD_SIZE = 5;
+const FREE_SPACE_VALUE = 'FREE';
 
-const getRandomUniqueNumbers = (count, min, max) => {
-  const numbers = [];
-  while (numbers.length < count) {
-    const value = Math.floor(Math.random() * (max - min + 1)) + min;
-    if (!numbers.includes(value)) {
-      numbers.push(value);
-    }
+const DEFAULT_NUMBER_RANGE = { min: 1, max: 75 };
+
+const createRangePool = ({ min, max }) => {
+  const pool = [];
+  for (let value = min; value <= max; value += 1) {
+    pool.push(value);
   }
-  return numbers;
+  return pool;
 };
 
-export const generateBingoBoard = () => {
-  const columns = COLUMN_RANGES.map(([min, max], index) => {
-    const count = 5;
-    const numbers = getRandomUniqueNumbers(count, min, max);
-    numbers.sort((a, b) => a - b);
-    return numbers;
-  });
+const sampleUniqueNumbers = (count, range) => {
+  const pool = createRangePool(range);
+  if (count > pool.length) {
+    throw new Error('Number range is too small to generate a unique bingo board.');
+  }
+  for (let i = pool.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, count);
+};
 
-  const board = Array.from({ length: 5 }, (_, rowIndex) =>
-    columns.map((colNumbers, colIndex) => {
-      if (rowIndex === 2 && colIndex === 2) {
-        return 'FREE';
+export const generateBingoBoard = (range = DEFAULT_NUMBER_RANGE) => {
+  const requiredNumbers = BOARD_SIZE * BOARD_SIZE - 1;
+  const uniqueNumbers = sampleUniqueNumbers(requiredNumbers, range);
+
+  const board = Array.from({ length: BOARD_SIZE }, () => Array.from({ length: BOARD_SIZE }, () => 0));
+  let index = 0;
+  for (let row = 0; row < BOARD_SIZE; row += 1) {
+    for (let col = 0; col < BOARD_SIZE; col += 1) {
+      if (row === Math.floor(BOARD_SIZE / 2) && col === Math.floor(BOARD_SIZE / 2)) {
+        board[row][col] = FREE_SPACE_VALUE;
+        continue;
       }
-      return colNumbers[rowIndex];
-    })
-  );
+      board[row][col] = uniqueNumbers[index];
+      index += 1;
+    }
+  }
 
   return board;
 };
 
 export const isCellMarked = (value, rowIndex, colIndex, calledNumbersSet) => {
-  if (rowIndex === 2 && colIndex === 2) {
+  if (rowIndex === Math.floor(BOARD_SIZE / 2) && colIndex === Math.floor(BOARD_SIZE / 2)) {
     return true;
   }
   return calledNumbersSet.has(value);
 };
+
+export const getDefaultNumberRange = () => ({ ...DEFAULT_NUMBER_RANGE });

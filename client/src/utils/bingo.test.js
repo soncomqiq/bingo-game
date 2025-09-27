@@ -9,15 +9,9 @@ describe('generateBingoBoard', () => {
     expect(board[2][2]).toBe('FREE');
   });
 
-  it('fills each column with numbers from the correct ranges', () => {
+  it('fills the board with unique numbers in the default range', () => {
     const board = generateBingoBoard();
-    const ranges = [
-      [1, 15],
-      [16, 30],
-      [31, 45],
-      [46, 60],
-      [61, 75]
-    ];
+    const seen = new Set();
 
     board.forEach((row, rowIndex) => {
       row.forEach((value, colIndex) => {
@@ -25,26 +19,33 @@ describe('generateBingoBoard', () => {
           expect(value).toBe('FREE');
           return;
         }
-        const [min, max] = ranges[colIndex];
-        expect(value).toBeGreaterThanOrEqual(min);
-        expect(value).toBeLessThanOrEqual(max);
+        expect(value).toBeGreaterThanOrEqual(1);
+        expect(value).toBeLessThanOrEqual(75);
+        expect(seen.has(value)).toBe(false);
+        seen.add(value);
+      });
+    });
+
+    expect(seen.size).toBe(24);
+  });
+
+  it('respects a custom number range', () => {
+    const board = generateBingoBoard({ min: 10, max: 60 });
+    board.forEach((row, rowIndex) => {
+      row.forEach((value, colIndex) => {
+        if (rowIndex === 2 && colIndex === 2) {
+          return;
+        }
+        expect(value).toBeGreaterThanOrEqual(10);
+        expect(value).toBeLessThanOrEqual(60);
       });
     });
   });
 
-  it('does not repeat numbers within the same column', () => {
-    const board = generateBingoBoard();
-    for (let col = 0; col < 5; col += 1) {
-      const columnValues = new Set();
-      for (let row = 0; row < 5; row += 1) {
-        if (row === 2 && col === 2) {
-          continue;
-        }
-        const value = board[row][col];
-        expect(columnValues.has(value)).toBe(false);
-        columnValues.add(value);
-      }
-    }
+  it('throws if the range cannot supply 24 unique numbers', () => {
+    expect(() => generateBingoBoard({ min: 1, max: 10 })).toThrow(
+      /too small to generate a unique bingo board/i
+    );
   });
 });
 

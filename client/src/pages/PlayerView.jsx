@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import BingoBoard from '../components/BingoBoard.jsx';
-import { generateBingoBoard } from '../utils/bingo.js';
+import { generateBingoBoard, getDefaultNumberRange } from '../utils/bingo.js';
 import { useSocket } from '../socket/SocketProvider.jsx';
 
 const PlayerView = () => {
@@ -16,9 +16,11 @@ const PlayerView = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const [hasJoined, setHasJoined] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
-  const [winner, setWinner] = useState(null);
+  const [winners, setWinners] = useState([]);
+  const [maxWinners, setMaxWinners] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [playerId, setPlayerId] = useState(null);
+  const [numberRange, setNumberRange] = useState(getDefaultNumberRange());
 
   const sortedCalledNumbers = useMemo(() => [...calledNumbers].sort((a, b) => a - b), [calledNumbers]);
 
@@ -34,6 +36,15 @@ const PlayerView = () => {
         const data = await response.json();
         if (!isMounted) {
           return;
+        }
+        if (data.numberRange) {
+          setNumberRange(data.numberRange);
+        }
+        if (Array.isArray(data.winners)) {
+          setWinners(data.winners);
+        }
+        if (typeof data.maxWinners === 'number') {
+          setMaxWinners(data.maxWinners);
         }
         if (data.started) {
           setError('This game has already started. Wait for the next round.');
@@ -62,30 +73,47 @@ const PlayerView = () => {
     const handleGameStarted = () => {
       setGameStarted(true);
       setStatusMessage('Game is live! Numbers will appear here as they are drawn.');
+      setWinners([]);
     };
 
     const handleNumberDrawn = ({ number, calledNumbers: numbers }) => {
       setCalledNumbers(numbers);
       setStatusMessage(`Number ${number} was just called!`);
-      setWinner(null);
     };
 
-    const handleBingo = ({ winner: winnerPlayer, calledNumbers: numbers }) => {
-      setWinner(winnerPlayer);
+    const handleBingo = ({ winners: winnerList, newWinners, calledNumbers: numbers, maxWinners: limit }) => {
+      if (Array.isArray(winnerList)) {
+        setWinners(winnerList);
+      }
+      if (typeof limit === 'number') {
+        setMaxWinners(limit);
+      }
       setCalledNumbers(numbers);
-      setStatusMessage(`Player ${winnerPlayer.name} has BINGO!`);
+      if (Array.isArray(newWinners) && newWinners.length) {
+        const names = newWinners
+          .map((entry) => (entry.id === playerId ? 'You' : entry.name))
+          .join(', ');
+        setStatusMessage(`${names} ${newWinners.length === 1 ? 'has' : 'have'} BINGO!`);
+      } else if (Array.isArray(winnerList) && winnerList.length) {
+        const youAreWinner = winnerList.some((entry) => entry.id === playerId);
+        setStatusMessage(
+          youAreWinner
+            ? 'You already have BINGO!'
+            : `We have ${winnerList.length} winner${winnerList.length === 1 ? '' : 's'} so far!`
+        );
+      }
     };
 
     const handleReset = () => {
       setGameStarted(false);
       setCalledNumbers([]);
-      const freshBoard = generateBingoBoard();
+      const freshBoard = generateBingoBoard(numberRange);
       setBoard(freshBoard);
       if (socket && playerId) {
         socket.emit('player:updateBoard', { gameId, board: freshBoard });
       }
       setStatusMessage('Host is setting up a new round. A fresh board has been prepared for you.');
-      setWinner(null);
+      setWinners([]);
     };
 
     const handleEnded = () => {
@@ -106,7 +134,7 @@ const PlayerView = () => {
       socket.off('game:reset', handleReset);
       socket.off('game:ended', handleEnded);
     };
-  }, [socket, hasJoined, gameId, playerId]);
+  }, [socket, hasJoined, gameId, playerId, numberRange]);
 
   const handleJoinGame = (event) => {
     event.preventDefault();
@@ -124,13 +152,13 @@ const PlayerView = () => {
 
     setIsSubmitting(true);
     setError('');
-    const newBoard = generateBingoBoard();
+    const boardForJoin = generateBingoBoard(numberRange);
     socket.emit(
       'player:join',
       {
         gameId,
         name: name.trim(),
-        board: newBoard
+        board: boardForJoin
       },
       (response) => {
         if (!response?.ok) {
@@ -138,7 +166,22 @@ const PlayerView = () => {
           setIsSubmitting(false);
           return;
         }
-        setBoard(newBoard);
+        if (response.numberRange) {
+          setNumberRange(response.numberRange);
+        }
+        if (typeof response.maxWinners === 'number') {
+          setMaxWinners(response.maxWinners);
+        }
+        if (Array.isArray(response.winners)) {
+          setWinners(response.winners);
+        }
+        if (response.numberRange && (response.numberRange.min !== numberRange.min || response.numberRange.max !== numberRange.max)) {
+          const adjustedBoard = generateBingoBoard(response.numberRange);
+          setBoard(adjustedBoard);
+          socket.emit('player:updateBoard', { gameId, board: adjustedBoard });
+        } else {
+          setBoard(boardForJoin);
+        }
         setCalledNumbers([]);
         setPlayerId(response.playerId);
         setHasJoined(true);
@@ -152,7 +195,7 @@ const PlayerView = () => {
     if (gameStarted) {
       return;
     }
-    const newBoard = generateBingoBoard();
+    const newBoard = generateBingoBoard(numberRange);
     setBoard(newBoard);
     if (socket && playerId) {
       socket.emit('player:updateBoard', { gameId, board: newBoard });
@@ -211,18 +254,33 @@ const PlayerView = () => {
           {statusMessage ? (
             <p style={{ marginTop: '0.5rem', color: '#0f172a' }}>{statusMessage}</p>
           ) : null}
+          <p style={{ marginTop: '1rem', color: '#475569' }}>
+            Number range: {numberRange.min} – {numberRange.max}
+            <br />Winner limit: {maxWinners}
+          </p>
           <BingoBoard board={board} calledNumbers={calledNumbers} />
           {!gameStarted ? (
             <button type="button" style={{ marginTop: '1.5rem' }} onClick={handleRandomizeBoard}>
               Randomize Board
             </button>
           ) : null}
-          {winner ? (
-            <p style={{ marginTop: '1.5rem', fontWeight: 600 }}>
-              {winner.id === playerId
-                ? 'Congratulations! You got BINGO!'
-                : `${winner.name} has declared BINGO.`}
-            </p>
+          {winners.length > 0 ? (
+            <section style={{ marginTop: '1.5rem' }}>
+              <h3>Current Winners</h3>
+              <ul>
+                {winners.map((entry) => (
+                  <li key={entry.id} style={{ fontWeight: entry.id === playerId ? 700 : 500 }}>
+                    {entry.id === playerId ? 'You' : entry.name}
+                  </li>
+                ))}
+              </ul>
+              <p style={{ marginTop: '0.5rem', color: '#475569' }}>
+                {winners.length} of {maxWinners} winner{maxWinners === 1 ? '' : 's'} confirmed.
+                {winners.length >= maxWinners
+                  ? ' Winner limit reached—hang tight for the next round.'
+                  : ` ${maxWinners - winners.length} spot${maxWinners - winners.length === 1 ? '' : 's'} remaining.`}
+              </p>
+            </section>
           ) : null}
 
           {sortedCalledNumbers.length ? (

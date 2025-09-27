@@ -9,6 +9,9 @@ A web-based, real-time multiplayer bingo experience tailored for classroom parti
 - **Smart bingo boards** – players randomize 5×5 boards (with the classic FREE center space) until the game starts.
 - **Live or manual number calls** – hosts can draw random numbers from 1–75 or manually call a specific number to handle corrections mid-game.
 - **Automatic win detection** – rows, columns, and diagonals trigger instant BINGO announcements for everyone.
+- **Custom number ranges** – hosts choose the minimum and maximum values for every game, making it easy to align with lesson numbers or smaller practice sets.
+- **Pre-game draw estimates** – a quick Monte Carlo simulation predicts roughly how many draws it will take to crown the first winner based on the active range and player count.
+- **Winner caps** – limit how many players can claim Bingo before the round ends to keep things moving.
 - **Reset-ready** – hosts can spin up another round without leaving the lobby.
 
 ## Project layout
@@ -54,10 +57,10 @@ Visit `http://localhost:5173` to create or join games. Socket.IO traffic is prox
 
 ### Host workflow
 
-1. From the homepage, enter a password (minimum 4 characters) and create a new game.
-2. On the host screen, re-enter the same password to unlock controls. The password is never sent to players or persisted in a database.
-3. After the game starts you can draw randomly or use **Call Number** to announce a specific value that was missed.
-4. Use **Play Again** to reset the lobby and generate fresh boards for everyone.
+1. From the homepage, choose a password (minimum 4 characters), select a number range, and optionally set how many winners to allow.
+2. On the host screen, re-enter the password to unlock controls. The password is never sent to players or persisted in a database.
+3. Review the live draw estimate, then start the game once everyone is ready. Draw randomly or use **Call Number** to announce a specific value.
+4. When the winner limit is reached, reset the lobby with **Play Again** to generate fresh boards for everyone.
 
 ## Tests
 

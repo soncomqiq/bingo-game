@@ -18,11 +18,14 @@ const HostView = () => {
   const [players, setPlayers] = useState([]);
   const [started, setStarted] = useState(false);
   const [calledNumbers, setCalledNumbers] = useState([]);
-  const [winner, setWinner] = useState(null);
+  const [winners, setWinners] = useState([]);
+  const [maxWinners, setMaxWinners] = useState(1);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isPicking, setIsPicking] = useState(false);
   const [manualNumber, setManualNumber] = useState('');
   const [actionError, setActionError] = useState('');
+  const [numberRange, setNumberRange] = useState({ min: 1, max: 75 });
+  const [drawEstimate, setDrawEstimate] = useState(null);
 
   const [passwordInput, setPasswordInput] = useState(() => {
     if (typeof window === 'undefined') {
@@ -69,6 +72,18 @@ const HostView = () => {
         setActivePassword(trimmed);
         setAuthError('');
         setPasswordInput(trimmed);
+        if (response.numberRange) {
+          setNumberRange(response.numberRange);
+        }
+        if (typeof response.maxWinners === 'number') {
+          setMaxWinners(response.maxWinners);
+        }
+        if (Array.isArray(response.winners)) {
+          setWinners(response.winners);
+        }
+        if ('drawEstimate' in response) {
+          setDrawEstimate(response.drawEstimate);
+        }
         if (typeof window !== 'undefined') {
           window.sessionStorage.setItem(passwordStorageKey, trimmed);
         }
@@ -88,46 +103,68 @@ const HostView = () => {
       }
       setPlayers(payload.players);
       setStarted(payload.started);
+      if (payload.numberRange) {
+        setNumberRange(payload.numberRange);
+      }
+      if (typeof payload.maxWinners === 'number') {
+        setMaxWinners(payload.maxWinners);
+      }
+      if (Array.isArray(payload.winners)) {
+        setWinners(payload.winners);
+      }
+      if ('drawEstimate' in payload) {
+        setDrawEstimate(payload.drawEstimate);
+      }
     };
 
     const handleGameStarted = () => {
       setStarted(true);
       setCalledNumbers([]);
-      setWinner(null);
+      setWinners([]);
       setManualNumber('');
       setIsDrawing(false);
       setIsPicking(false);
+      setDrawEstimate(null);
     };
 
     const handleNumberDrawn = ({ calledNumbers: numbers }) => {
       setCalledNumbers(numbers);
-      setWinner(null);
       setIsDrawing(false);
       setIsPicking(false);
       setActionError('');
     };
 
-    const handleBingo = ({ winner: winnerPlayer, calledNumbers: numbers }) => {
-      setWinner(winnerPlayer);
+    const handleBingo = ({ winners: winnerList, newWinners, calledNumbers: numbers, maxWinners: limit }) => {
+      if (Array.isArray(winnerList)) {
+        setWinners(winnerList);
+      }
+      if (typeof limit === 'number') {
+        setMaxWinners(limit);
+      }
       setCalledNumbers(numbers);
       setIsDrawing(false);
       setIsPicking(false);
+      const limitReached = Array.isArray(winnerList) && typeof limit === 'number' && winnerList.length >= limit;
+      setActionError(limitReached ? 'Winner limit reached. Reset to start a new round.' : '');
     };
 
     const handleReset = () => {
       setStarted(false);
       setCalledNumbers([]);
-      setWinner(null);
+      setWinners([]);
       setManualNumber('');
       setIsDrawing(false);
       setIsPicking(false);
       setActionError('');
+      setDrawEstimate(null);
     };
 
     const handleEnded = () => {
       setActionError('Game ended because the host disconnected.');
       setIsAuthenticated(false);
       setActivePassword('');
+      setWinners([]);
+      setDrawEstimate(null);
       if (typeof window !== 'undefined') {
         window.sessionStorage.removeItem(passwordStorageKey);
       }
@@ -211,8 +248,12 @@ const HostView = () => {
     }
     const trimmed = manualNumber.trim();
     const parsed = Number.parseInt(trimmed, 10);
-    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 75) {
-      setActionError('Enter a whole number between 1 and 75.');
+    if (
+      !Number.isInteger(parsed) ||
+      parsed < numberRange.min ||
+      parsed > numberRange.max
+    ) {
+      setActionError(`Enter a whole number between ${numberRange.min} and ${numberRange.max}.`);
       return;
     }
     setActionError('');
@@ -259,6 +300,10 @@ const HostView = () => {
       <p>
         Or send them directly to <Link to={`/game/${gameId}`}>/game/{gameId}</Link>
       </p>
+      <p style={{ marginTop: '0.5rem', color: '#475569' }}>
+        Number range: {numberRange.min} – {numberRange.max}
+        <br />Winner limit: {maxWinners}
+      </p>
 
       <section style={{ marginTop: '1.5rem' }}>
         <h2>Host Access</h2>
@@ -296,6 +341,31 @@ const HostView = () => {
       <section style={{ marginTop: '2rem' }}>
         <h2>Lobby</h2>
         <p>{players.length === 0 ? 'Waiting for players to join…' : `${players.length} player(s) ready`}</p>
+        {drawEstimate ? (
+          <div
+            style={{
+              marginTop: '0.75rem',
+              padding: '0.75rem 1rem',
+              background: '#eef2ff',
+              borderRadius: '8px',
+              color: '#312e81',
+              lineHeight: 1.5
+            }}
+          >
+            <strong>Estimated draws to first Bingo:</strong> ~{drawEstimate.average}{' '}
+            {drawEstimate.p10 && drawEstimate.p90
+              ? `(likely range ${drawEstimate.p10}–${drawEstimate.p90})`
+              : null}
+            {drawEstimate.median ? (
+              <>
+                <br />Typical draw count (median): {drawEstimate.median}
+              </>
+            ) : null}
+            <br />
+            Based on {players.length} player{players.length === 1 ? '' : 's'} and numbers {numberRange.min}–
+            {numberRange.max} (sample size {drawEstimate.sampleSize}).
+          </div>
+        ) : null}
         <ul>
           {players.map((player) => (
             <li key={player.id}>{player.name}</li>
@@ -317,15 +387,15 @@ const HostView = () => {
             <button
               type="button"
               onClick={handleDrawNumber}
-              disabled={!isAuthenticated || isDrawing || Boolean(winner)}
+              disabled={!isAuthenticated || isDrawing || winners.length >= maxWinners}
             >
               {isDrawing ? 'Drawing…' : 'Draw Next Number'}
             </button>
             <form onSubmit={handleManualPick} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               <input
                 type="number"
-                min="1"
-                max="75"
+                min={numberRange.min}
+                max={numberRange.max}
                 value={manualNumber}
                 onChange={(event) => setManualNumber(event.target.value)}
                 placeholder="Pick a specific number"
@@ -335,9 +405,9 @@ const HostView = () => {
                   border: '1px solid #cbd5f5',
                   flex: '1 1 auto'
                 }}
-                disabled={!isAuthenticated || Boolean(winner)}
+                disabled={!isAuthenticated || winners.length >= maxWinners}
               />
-              <button type="submit" disabled={!isAuthenticated || isPicking || Boolean(winner)}>
+              <button type="submit" disabled={!isAuthenticated || isPicking || winners.length >= maxWinners}>
                 {isPicking ? 'Sending…' : 'Call Number'}
               </button>
             </form>
@@ -375,12 +445,28 @@ const HostView = () => {
         </section>
       ) : null}
 
-      {winner ? (
+      {winners.length > 0 ? (
         <section style={{ marginTop: '2rem' }}>
-          <h2>🎉 We have a winner!</h2>
-          <p>
-            Player <strong>{winner.name}</strong> has achieved BINGO.
+          <h2>🎉 Bingo Winners</h2>
+          <p style={{ marginBottom: '0.75rem' }}>
+            {winners.length} of {maxWinners} winner{maxWinners === 1 ? '' : 's'} confirmed.
           </p>
+          <ul style={{ marginBottom: '1rem' }}>
+            {winners.map((entry) => (
+              <li key={entry.id}>
+                <strong>{entry.name}</strong>
+              </li>
+            ))}
+          </ul>
+          {winners.length >= maxWinners ? (
+            <p style={{ color: '#16a34a', marginBottom: '1rem' }}>
+              Winner limit reached! Reset to start a new round.
+            </p>
+          ) : (
+            <p style={{ color: '#475569', marginBottom: '1rem' }}>
+              Keep drawing numbers to award the remaining winner spot{maxWinners - winners.length === 1 ? '' : 's'}.
+            </p>
+          )}
           <button type="button" onClick={handleResetGame} disabled={!isAuthenticated}>
             Play Again
           </button>
