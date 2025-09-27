@@ -5,7 +5,18 @@ export const getApiBaseUrl = () => {
   const runtimeValue = runtimeConfig?.apiBaseUrl;
   const windowValue = typeof window !== 'undefined' ? window.__BINGO_API_URL__ : undefined;
   const envValue = import.meta.env.VITE_API_URL;
-  const candidate = (runtimeValue || windowValue || envValue || '').trim();
+  const runtimeSocket = runtimeConfig?.socketUrl;
+  const windowSocket = typeof window !== 'undefined' ? window.__BINGO_SOCKET_URL__ : undefined;
+  const envSocket = import.meta.env.VITE_SOCKET_URL;
+  const candidate = (
+    runtimeValue ||
+    windowValue ||
+    envValue ||
+    runtimeSocket ||
+    windowSocket ||
+    envSocket ||
+    ''
+  ).trim();
 
   if (candidate) {
     return trimTrailingSlash(candidate);
@@ -22,6 +33,9 @@ export const buildApiUrl = (path) => {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   const base = getApiBaseUrl();
   if (!base) {
+    if (import.meta.env.PROD) {
+      console.warn('API base URL missing; falling back to relative request for', normalizedPath);
+    }
     return normalizedPath;
   }
   return `${base}${normalizedPath}`;

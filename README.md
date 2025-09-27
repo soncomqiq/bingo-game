@@ -74,7 +74,7 @@ Vercel is a great fit for the static React client. Because long-lived WebSocket 
 2. Set the **Build Command** to `npm run build` and the **Output Directory** to `dist`.
 3. Define two environment variables in the Vercel dashboard (production & preview):
     - `VITE_SOCKET_URL` → the Socket.IO endpoint, e.g. `https://bingo-backend.onrender.com`.
-    - `VITE_API_URL` → the REST API base (same origin as above), e.g. `https://bingo-backend.onrender.com`.
+    - `VITE_API_URL` → the REST API base (same origin as above), e.g. `https://bingo-backend.onrender.com`. If you skip this one, the client now falls back to the socket URL automatically.
 4. Trigger a deployment. Vercel injects the environment variables at build time, so every deployment points the UI at your live backend.
 
 Need to change URLs after a build? Copy `client/public/runtime-config.example.js` to `client/public/runtime-config.js`, fill in the values, and redeploy. That file is loaded ahead of the app and overrides both URLs without touching the source code.
@@ -94,7 +94,8 @@ Render’s Web Service tier keeps your Socket.IO server online 24/7 and supports
     - `NODE_ENV=production`
     - (Optional) `PORT` if you need a fixed port; Render provides one automatically via `$PORT` and the server already honors it.
 5. Click **Create Web Service**. Render will install dependencies, run the build, and expose a URL like `https://bingo-backend.onrender.com` once healthy.
-6. Drop that URL into your frontend deployments (`VITE_SOCKET_URL` and `VITE_API_URL` in Vercel, GitHub Actions secret, or `runtime-config.js`).
+   - The backend will skip serving static files if it doesn’t find `client/dist`, so you can deploy the server alone without bundling the React app.
+6. Drop that URL into your frontend deployments (`VITE_SOCKET_URL` and optionally `VITE_API_URL`) in Vercel, GitHub Actions secret, or `runtime-config.js`. Leaving `VITE_API_URL` unset will reuse the socket URL.
 
 Prefer infrastructure as code? Update the sample `render.yaml` and enable **Auto Deploy** when Render detects it in the repo root.
 

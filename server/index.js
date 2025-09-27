@@ -5,6 +5,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -666,10 +667,14 @@ io.on('connection', (socket) => {
 
 if (process.env.NODE_ENV === 'production') {
   const clientBuildPath = path.resolve(__dirname, '../client/dist');
-  app.use(express.static(clientBuildPath));
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(clientBuildPath, 'index.html'));
-  });
+  if (fs.existsSync(clientBuildPath)) {
+    app.use(express.static(clientBuildPath));
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(clientBuildPath, 'index.html'));
+    });
+  } else {
+    console.warn('Static client build not found; skipping file serving from', clientBuildPath);
+  }
 }
 
 const PORT = process.env.PORT || 4000;
