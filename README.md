@@ -79,6 +79,25 @@ Vercel is a great fit for the static React client. Because long-lived WebSocket 
 
 Need to change URLs after a build? Copy `client/public/runtime-config.example.js` to `client/public/runtime-config.js`, fill in the values, and redeploy. That file is loaded ahead of the app and overrides both URLs without touching the source code.
 
+## Render deployment (backend)
+
+Render’s Web Service tier keeps your Socket.IO server online 24/7 and supports native WebSockets. You can use the provided `render.yaml` or configure it manually:
+
+1. Push this repository to GitHub (or GitLab) and sign in to [render.com](https://render.com/).
+2. Click **New → Web Service**, choose the bingo repo, and set the **Root Directory** to `server` so Render installs the backend only.
+3. Use these settings:
+    - **Environment**: `Node`
+    - **Build Command**: `npm install`
+    - **Start Command**: `npm start`
+    - **Instance Type**: Start with the Free plan; upgrade if you see persistent load.
+4. Add environment variables:
+    - `NODE_ENV=production`
+    - (Optional) `PORT` if you need a fixed port; Render provides one automatically via `$PORT` and the server already honors it.
+5. Click **Create Web Service**. Render will install dependencies, run the build, and expose a URL like `https://bingo-backend.onrender.com` once healthy.
+6. Drop that URL into your frontend deployments (`VITE_SOCKET_URL` and `VITE_API_URL` in Vercel, GitHub Actions secret, or `runtime-config.js`).
+
+Prefer infrastructure as code? Update the sample `render.yaml` and enable **Auto Deploy** when Render detects it in the repo root.
+
 ### Host workflow
 
 1. From the homepage, choose a password (minimum 4 characters), select a number range, and optionally set how many winners to allow.
