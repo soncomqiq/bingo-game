@@ -7,21 +7,14 @@
     <script>
       (function (l) {
         var repoBase = '/bingo-game';
-        var hasBase = l.pathname.startsWith(repoBase);
-        var relativePath = (hasBase ? l.pathname.slice(repoBase.length) : l.pathname)
-          .replace(/^\/+/, '');
-        var search = l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '';
-        var redirectUrl =
-          l.protocol +
-          '//' +
-          l.hostname +
-          (l.port ? ':' + l.port : '') +
-          repoBase +
-          '/?/' +
-          relativePath.replace(/&/g, '~and~') +
-          search +
-          l.hash;
-        l.replace(redirectUrl);
+        if (l.search.startsWith('?/')) {
+          return;
+        }
+        var path = l.pathname.startsWith(repoBase) ? l.pathname.slice(repoBase.length) : l.pathname;
+        var cleanedPath = path.replace(/^\/+/, '').replace(/&/g, '~and~');
+        var query = l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '';
+        var redirectPath = repoBase + '/?/' + cleanedPath + query + l.hash;
+        l.replace(redirectPath);
       })(window.location);
     </script>
   </head>

@@ -9,16 +9,20 @@
       const runtimeConfig = window.__BINGO_RUNTIME_CONFIG__;
       window.__BINGO_SOCKET_URL__ = runtimeConfig.socketUrl ?? import.meta.env.VITE_SOCKET_URL ?? '';
       window.__BINGO_API_URL__ = runtimeConfig.apiBaseUrl ?? import.meta.env.VITE_API_URL ?? '';
+      const basePathRaw = import.meta.env.BASE_URL || '/';
+      const basePath = basePathRaw.endsWith('/') ? basePathRaw.slice(0, -1) : basePathRaw;
       (function (l) {
-        if (l.search[1] === '/') {
-          var decoded = l.search
-            .slice(1)
-            .split('&')
-            .map(function (s) {
-              return s.replace(/~and~/g, '&');
-            })
-            .join('?');
-          window.history.replaceState(null, null, decoded + l.hash);
+        if (l.search.startsWith('?/')) {
+          var searchPayload = l.search.slice(2);
+          var segments = searchPayload.split('?');
+          var pathnamePart = segments.shift() || '';
+          var queryPart = segments.length ? '?' + segments.join('?') : '';
+          var restoredPath = pathnamePart.replace(/~and~/g, '&');
+          if (!restoredPath.startsWith('/')) {
+            restoredPath = '/' + restoredPath;
+          }
+          var finalPath = (basePath && basePath !== '/' ? basePath : '') + restoredPath + queryPart + l.hash;
+          window.history.replaceState(null, null, finalPath || '/');
         }
       })(window.location);
     </script>
