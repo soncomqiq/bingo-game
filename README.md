@@ -55,6 +55,17 @@ In two separate terminals:
 
 Visit `http://localhost:5173` to create or join games. Socket.IO traffic is proxied to the backend during development.
 
+## GitHub Pages deployment
+
+This repository now ships with an automated GitHub Pages workflow that builds the client with Vite and publishes it to the `github-pages` environment. To activate it:
+
+1. Push your changes to the `main` branch (the workflow triggers on pushes to `main` or via manual dispatch).
+2. In your GitHub repository, open **Settings → Pages** and choose the **GitHub Actions** source if prompted.
+3. Add a repository secret named `BINGO_SOCKET_URL` under **Settings → Secrets and variables → Actions**. Set it to the public URL where your Socket.IO backend is hosted (for local testing you can leave it blank and the workflow will fall back to `http://localhost:4000`).
+4. The workflow builds the client with the appropriate base path (`/bingo-game/`) and deploys `client/dist` automatically. The published site will be available at `https://soncomqiq.github.io/bingo-game/`.
+
+> ℹ️ GitHub Pages can only serve static assets. You still need to host the Node/Socket.IO server separately (Render, Railway, Fly.io, Azure Web Apps, etc.) and expose its URL via the `VITE_SOCKET_URL` environment variable when building.
+
 ### Host workflow
 
 1. From the homepage, choose a password (minimum 4 characters), select a number range, and optionally set how many winners to allow.
