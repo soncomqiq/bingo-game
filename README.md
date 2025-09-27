@@ -66,6 +66,19 @@ This repository now ships with an automated GitHub Pages workflow that builds th
 
 > ℹ️ GitHub Pages can only serve static assets. You still need to host the Node/Socket.IO server separately and expose its URL via the `VITE_SOCKET_URL` environment variable (or `BINGO_SOCKET_URL` secret in CI). The UI now warns and stays disconnected if no production socket URL is supplied.
 
+## Vercel deployment
+
+Vercel is a great fit for the static React client. Because long-lived WebSocket connections require a traditional Node host, you should still deploy the Express/Socket.IO backend to a provider such as Render, Railway, Fly.io, or a plain VPS. Once you have a public backend URL, deploy the client with these settings:
+
+1. Create a new Vercel project and point it at the `client` folder.
+2. Set the **Build Command** to `npm run build` and the **Output Directory** to `dist`.
+3. Define two environment variables in the Vercel dashboard (production & preview):
+    - `VITE_SOCKET_URL` → the Socket.IO endpoint, e.g. `https://bingo-backend.onrender.com`.
+    - `VITE_API_URL` → the REST API base (same origin as above), e.g. `https://bingo-backend.onrender.com`.
+4. Trigger a deployment. Vercel injects the environment variables at build time, so every deployment points the UI at your live backend.
+
+Need to change URLs after a build? Copy `client/public/runtime-config.example.js` to `client/public/runtime-config.js`, fill in the values, and redeploy. That file is loaded ahead of the app and overrides both URLs without touching the source code.
+
 ### Host workflow
 
 1. From the homepage, choose a password (minimum 4 characters), select a number range, and optionally set how many winners to allow.
@@ -97,6 +110,7 @@ Optional environment variables:
 
 - `PORT` – backend listening port (defaults to `4000`).
 - `VITE_SOCKET_URL` – override Socket.IO endpoint (defaults to `http://localhost:4000`).
+- `VITE_API_URL` – override REST API base URL for API calls (defaults to `http://localhost:4000`).
 
 ## Next steps
 

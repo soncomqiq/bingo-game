@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import BingoBoard from '../components/BingoBoard.jsx';
 import { generateBingoBoard, getDefaultNumberRange } from '../utils/bingo.js';
+import { apiFetch } from '../utils/apiClient.js';
 import { useSocket } from '../socket/SocketProvider.jsx';
 
 const PlayerView = () => {
@@ -29,7 +30,7 @@ const PlayerView = () => {
     const fetchGame = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`/api/games/${gameId}`);
+  const response = await apiFetch(`/api/games/${gameId}`);
         if (response.status === 404) {
           throw new Error('Game not found. Double-check the link with your host.');
         }

@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Real-time Bingo</title>
     <script type="module">
-      window.__BINGO_SOCKET_URL__ = import.meta.env.VITE_SOCKET_URL ?? '';
+      window.__BINGO_RUNTIME_CONFIG__ = window.__BINGO_RUNTIME_CONFIG__ || {};
+      const runtimeConfig = window.__BINGO_RUNTIME_CONFIG__;
+      window.__BINGO_SOCKET_URL__ = runtimeConfig.socketUrl ?? import.meta.env.VITE_SOCKET_URL ?? '';
+      window.__BINGO_API_URL__ = runtimeConfig.apiBaseUrl ?? import.meta.env.VITE_API_URL ?? '';
       (function (l) {
         if (l.search[1] === '/') {
           var decoded = l.search

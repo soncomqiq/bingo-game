@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { apiFetch } from '../utils/apiClient.js';
 
 const PASSWORD_MIN_LENGTH = 4;
 
@@ -44,7 +45,7 @@ const HomePage = () => {
     }
     setIsCreating(true);
     try {
-      const response = await fetch('/api/games', {
+      const response = await apiFetch('/api/games', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
